@@ -1,673 +1,342 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ultimate Frisbee Tracker</title>
-  <style>
-    :root {
-      --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
-      --border: #475569; --text: #f1f5f9; --muted: #94a3b8;
-      --accent: #38bdf8; --green: #22c55e; --red: #ef4444; --amber: #f59e0b;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
-    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
-    .logo { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
-    .screen { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
-    .screen.active { display: block; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
-    .card-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 10px; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-primary { background: var(--accent); color: #0f172a; }
-    .btn-green { background: var(--green); color: #0f172a; }
-    .btn-red { background: var(--red); color: #fff; }
-    .btn-ghost { background: var(--surface2); color: var(--text); }
-    .btn-amber { background: var(--amber); color: #0f172a; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-    .btn-full { width: 100%; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; }
-    .page-title { font-size: 1.1rem; font-weight: 700; }
-    .text-muted { color: var(--muted); font-size: 0.82rem; }
-
-    /* PLAYER GRID */
-    .roster-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .player-chip { border-radius: 8px; padding: 10px 8px; text-align: center; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; position: relative; }
-    .player-chip.male { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #93c5fd; }
-    .player-chip.female { background: rgba(236,72,153,0.2); border-color: #ec4899; color: #f9a8d4; }
-    .player-chip.selected { outline: 3px solid var(--amber); outline-offset: 2px; }
-    .player-chip.suggested { box-shadow: 0 0 0 3px var(--amber), 0 0 14px rgba(245,158,11,0.5); }
-    .player-chip .jersey { font-size: 1.1rem; font-weight: 700; }
-    .player-chip .name { font-size: 0.72rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .player-chip .pts-badge { position: absolute; top: 3px; right: 4px; font-size: 0.6rem; background: var(--amber); color: #0f172a; border-radius: 10px; padding: 1px 4px; font-weight: 700; }
-    .player-chip .line-tag { position: absolute; bottom: 3px; right: 4px; font-size: 0.58rem; background: var(--surface2); color: var(--muted); border-radius: 4px; padding: 1px 3px; }
-
-    /* NAV TABS */
-    .demo-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; position: sticky; top: 0; z-index: 10; }
-    .demo-tab { padding: 10px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); white-space: nowrap; transition: all 0.15s; }
-    .demo-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    /* SUB-TABS */
-    .sub-tabs { display: flex; gap: 4px; margin-bottom: 14px; background: var(--surface2); border-radius: 8px; padding: 3px; overflow-x: auto; }
-    .sub-tab { flex: 1; padding: 7px 8px; text-align: center; font-size: 0.78rem; font-weight: 600; cursor: pointer; border-radius: 6px; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
-    .sub-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-
-    /* TOGGLE */
-    .toggle-group { display: flex; background: var(--surface2); border-radius: 8px; padding: 3px; gap: 3px; flex-wrap: wrap; }
-    .toggle-btn { flex: 1; padding: 7px; border-radius: 6px; border: none; background: transparent; color: var(--muted); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-    .toggle-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-
-    /* FORM */
-    .input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 0.9rem; outline: none; }
-    .input:focus { border-color: var(--accent); }
-    .label { font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; display: block; }
-    .mb-8 { margin-bottom: 8px; } .mb-12 { margin-bottom: 12px; } .mb-16 { margin-bottom: 16px; }
-    .checkbox-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
-    .checkbox-row input[type=checkbox] { width: 17px; height: 17px; cursor: pointer; accent-color: var(--accent); }
-    .checkbox-row label { font-size: 0.85rem; cursor: pointer; }
-
-    /* SCOREBOARD */
-    .scoreboard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .score-num { font-size: 2.8rem; font-weight: 800; line-height: 1; }
-    .score-num.us { color: var(--green); }
-    .score-num.them { color: var(--red); }
-    .score-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; text-align: center; }
-    .gender-pill { font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-align: center; }
-    .gender-pill.women { background: rgba(236,72,153,0.2); color: #f9a8d4; border: 1px solid #ec4899; }
-    .gender-pill.men { background: rgba(59,130,246,0.2); color: #93c5fd; border: 1px solid #3b82f6; }
-
-    /* GENDER SEQ DOTS */
-    .gender-seq { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
-    .gender-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; cursor: default; }
-    .gender-dot.M { background: rgba(59,130,246,0.3); color: #93c5fd; border: 1px solid #3b82f6; }
-    .gender-dot.F { background: rgba(236,72,153,0.3); color: #f9a8d4; border: 1px solid #ec4899; }
-
-    /* LINE FILTER CHIPS */
-    .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-    .filter-chip { padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); color: var(--muted); background: var(--surface2); transition: all 0.15s; }
-    .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,0.1); }
-
-    /* POINT HISTORY TABLE */
-    .point-history { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-    .point-history th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; padding: 5px 6px; text-align: left; border-bottom: 1px solid var(--border); }
-    .point-history td { padding: 6px 6px; border-bottom: 1px solid rgba(71,85,105,0.3); vertical-align: top; }
-    .point-history tr.future td { color: var(--muted); font-style: italic; }
-    .point-history tr.past-win td:first-child { color: var(--green); }
-    .point-history tr.past-loss td:first-child { color: var(--red); }
-    .mini-chip { display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; font-weight: 600; margin: 1px; }
-    .mini-chip.m { background: rgba(59,130,246,0.25); color: #93c5fd; }
-    .mini-chip.f { background: rgba(236,72,153,0.25); color: #f9a8d4; }
-
-    /* CHART */
-    .chart-container { overflow-x: auto; }
-    .player-chart { border-collapse: collapse; font-size: 0.72rem; min-width: 100%; }
-    .player-chart th, .player-chart td { padding: 4px 6px; border: 1px solid rgba(71,85,105,0.3); white-space: nowrap; }
-    .player-chart th { background: var(--surface2); color: var(--muted); font-size: 0.65rem; text-transform: uppercase; }
-    .player-chart td.player-name { font-weight: 600; background: var(--surface2); color: var(--text); position: sticky; left: 0; min-width: 80px; }
-    .player-chart td.player-name.male { color: #93c5fd; }
-    .player-chart td.player-name.female { color: #f9a8d4; }
-    .cell-played { background: rgba(56,189,248,0.35); }
-    .cell-win { background: rgba(34,197,94,0.35); }
-    .cell-loss { background: rgba(239,68,68,0.2); }
-    .cell-future { background: rgba(245,158,11,0.2); }
-    .cell-empty { background: transparent; }
-
-    /* STATS TABLE */
-    .stats-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .stats-table th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
-    .stats-table td { padding: 8px; border-bottom: 1px solid rgba(71,85,105,0.4); }
-    .highlight { color: var(--accent); font-weight: 700; }
-
-    /* GAME LOG */
-    .game-log-list { list-style: none; }
-    .game-log-list li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(71,85,105,0.3); font-size: 0.82rem; }
-    .ev-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
-    .ev-icon.goal { background: rgba(34,197,94,0.2); color: var(--green); }
-    .ev-icon.loss { background: rgba(239,68,68,0.2); color: var(--red); }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
-    .badge-green { background: rgba(34,197,94,0.2); color: var(--green); border: 1px solid var(--green); }
-    .badge-red { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid var(--red); }
-    .section-sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ultimate Frisbee Tracker Pro</title>
+<style>
+:root {
+--bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+--border: #475569; --text: #f1f5f9; --muted: #94a3b8;
+--accent: #38bdf8; --green: #22c55e; --red: #ef4444; --amber: #f59e0b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+.logo { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
+.screen { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+.screen.active { display: block; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.card-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #0f172a; }
+.btn-green { background: var(--green); color: #0f172a; }
+.btn-red { background: var(--red); color: #fff; }
+.btn-ghost { background: var(--surface2); color: var(--text); }
+.btn-full { width: 100%; }
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+.roster-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.player-chip { border-radius: 8px; padding: 10px 8px; text-align: center; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; position: relative; }
+.player-chip.male { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #93c5fd; }
+.player-chip.female { background: rgba(236,72,153,0.2); border-color: #ec4899; color: #f9a8d4; }
+.player-chip.selected { outline: 3px solid var(--amber); outline-offset: 2px; }
+.player-chip .jersey { font-size: 1.1rem; font-weight: 700; }
+.player-chip .name { font-size: 0.72rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; position: sticky; top: 0; z-index: 10; }
+.demo-tab { padding: 10px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); white-space: nowrap; }
+.demo-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.sub-tabs { display: flex; gap: 4px; margin-bottom: 14px; background: var(--surface2); border-radius: 8px; padding: 3px; }
+.sub-tab { flex: 1; padding: 7px 8px; text-align: center; font-size: 0.78rem; font-weight: 600; cursor: pointer; border-radius: 6px; color: var(--muted); }
+.sub-tab.active { background: var(--surface); color: var(--text); }
+.toggle-group { display: flex; background: var(--surface2); border-radius: 8px; padding: 3px; gap: 3px; }
+.toggle-btn { flex: 1; padding: 7px; border-radius: 6px; border: none; background: transparent; color: var(--muted); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.toggle-btn.active { background: var(--surface); color: var(--text); }
+.scoreboard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.score-num { font-size: 2.8rem; font-weight: 800; }
+.score-num.us { color: var(--green); }
+.score-num.them { color: var(--red); }
+.gender-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
+.gender-dot.M { background: rgba(59,130,246,0.3); color: #93c5fd; border: 1px solid #3b82f6; }
+.gender-dot.F { background: rgba(236,72,153,0.3); color: #f9a8d4; border: 1px solid #ec4899; }
+.action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+.game-log-list { list-style: none; font-size: 0.82rem; }
+.game-log-list li { padding: 8px 0; border-bottom: 1px solid var(--border); }
+</style>
 </head>
 <body>
 
-<nav>
-  <div class="logo">&#127943; Ultimate Tracker</div>
-</nav>
+<nav><div class="logo">🥏 Ultimate Tracker</div></nav>
 
 <div class="demo-tabs">
-  <div class="demo-tab active" onclick="showScreen('roster')">Roster</div>
-  <div class="demo-tab" onclick="showScreen('setup')">Setup</div>
-  <div class="demo-tab" onclick="showScreen('lines')">Lines</div>
-  <div class="demo-tab" onclick="showScreen('live')">Live Game</div>
-  <div class="demo-tab" onclick="showScreen('summary')">Summary</div>
+    <div class="demo-tab active" onclick="showScreen('roster')">Roster</div>
+    <div class="demo-tab" onclick="showScreen('lines')">Squad</div>
+    <div class="demo-tab" onclick="showScreen('setup')">Setup</div>
+    <div class="demo-tab" onclick="showScreen('calling')">Line Calling</div>
+    <div class="demo-tab" onclick="showScreen('live')">Live</div>
+    <div class="demo-tab" onclick="showScreen('summary')">Summary</div>
 </div>
 
-<!-- ===================== ROSTER ===================== -->
 <div class="screen active" id="screen-roster">
-  <div class="top-bar">
-    <div>
-      <div class="page-title">FireDiscs</div>
-      <div class="text-muted" id="roster-info">14 players</div>
+    <div class="card">
+        <div class="card-title">Choose the players for the game</div>
+        <button class="btn btn-ghost btn-sm mb-12" onclick="addAllToSquad()">+ Add All</button>
+        <div class="roster-grid" id="roster-selection-grid"></div>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="showScreen('setup')">+ New Game</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Full Roster</div>
-    <div class="roster-grid" id="roster-grid"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Add Player</div>
-    <div class="mb-8"><label class="label">Name</label>
-      <input class="input" type="text" id="new-name" placeholder="Player name" /></div>
-    <div class="mb-8"><label class="label">Jersey #</label>
-      <input class="input" type="number" id="new-num" placeholder="Number" /></div>
-    <div class="mb-12"><label class="label">Gender</label>
-      <div class="toggle-group">
-        <button class="toggle-btn active" id="ng-m" onclick="setNg('M')">Male</button>
-        <button class="toggle-btn" id="ng-f" onclick="setNg('F')">Female</button>
-      </div></div>
-    <button class="btn btn-primary btn-full" onclick="addPlayer()">Add to Roster</button>
-  </div>
 </div>
 
-<!-- ===================== SETUP ===================== -->
-<div class="screen" id="screen-setup">
-  <div class="top-bar">
-    <div><div class="page-title">New Game</div><div class="text-muted">FireDiscs</div></div>
-  </div>
-
-  <div class="sub-tabs" id="setup-subtabs">
-    <div class="sub-tab active" onclick="showSetupTab('squad')">Squad</div>
-    <div class="sub-tab" onclick="showSetupTab('format')">Format</div>
-  </div>
-
-  <div id="setup-squad">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="card-title" style="margin-bottom:0">Game Squad</div>
-        <div class="text-muted"><span id="squad-cnt">0</span> selected</div>
-      </div>
-      <div class="text-muted mb-12" style="font-size:0.75rem">Tap to add players to this game</div>
-      <div class="roster-grid" id="squad-grid"></div>
-    </div>
-  </div>
-
-  <div id="setup-format" style="display:none">
-    <div class="card">
-      <label class="label">Opponent Name</label>
-      <input class="input" type="text" id="opp-name" value="Hurricanes" />
-    </div>
-    <div class="card">
-      <div class="card-title">Starting Possession</div>
-      <div class="toggle-group">
-        <button class="toggle-btn active" id="tog-O" onclick="setPoss('O')">&#127944; We start on O</button>
-        <button class="toggle-btn" id="tog-D" onclick="setPoss('D')">&#128737; We start on D</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Gender Ratio</div>
-      <div class="toggle-group mb-8">
-        <button class="toggle-btn" id="tog-4M3F" onclick="setRatio('4M3F')">4M 3F</button>
-        <button class="toggle-btn active" id="tog-3M4F" onclick="setRatio('3M4F')">3M 4F</button>
-        <button class="toggle-btn" id="tog-MIXED" onclick="setRatio('MIXED')">Mixed</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Gender Sequence</div>
-      <div class="toggle-group mb-10">
-        <button class="toggle-btn active" id="tog-ABBA" onclick="setSeq('ABBA')">ABBA</button>
-        <button class="toggle-btn" id="tog-ALT" onclick="setSeq('ALT')">Alternating</button>
-        <button class="toggle-btn" id="tog-MANUAL" onclick="setSeq('MANUAL')">Manual</button>
-      </div>
-      <div id="abba-opts" class="mb-8">
-        <div class="checkbox-row">
-          <input type="checkbox" id="abba-f" onchange="setAbbaF()" />
-          <label for="abba-f">A = Female (default A = Male)</label>
-        </div>
-      </div>
-      <div class="text-muted" style="font-size:0.75rem;margin-bottom:6px">Preview (first 8 points):</div>
-      <div class="gender-seq" id="seq-preview"></div>
-    </div>
-  </div>
-
-  <button class="btn btn-green btn-full" onclick="startGame()" style="margin-top:4px;margin-bottom:24px">Start Game &#8594;</button>
-</div>
-
-<!-- ===================== LINES SCREEN ===================== -->
 <div class="screen" id="screen-lines">
-  <div class="top-bar">
-    <div><div class="page-title">Lines</div><div class="text-muted">Assign players to lines &amp; plan points</div></div>
-    <button class="btn btn-amber btn-sm" onclick="toggleChart()">&#128200; Chart</button>
-  </div>
-
-  <div id="chart-view" style="display:none" class="card mb-16">
-    <div class="card-title">Player Participation Chart</div>
-    <div class="text-muted mb-8" style="font-size:0.74rem">Green = point won &nbsp; Red = point lost &nbsp; Blue = planned</div>
-    <div class="chart-container">
-      <table class="player-chart" id="participation-chart"></table>
+    <div class="card">
+        <div class="card-title">Game Squad</div>
+        <div class="roster-grid" id="game-squad-grid"></div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Line Assignment</div>
-    <div class="text-muted mb-8" style="font-size:0.74rem">Assign each player to a line (1, 2, 3) or leave as nil</div>
-    <div id="line-assign-list"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Point-by-Point Plan &amp; History</div>
-    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px">Filter players by line:</div>
-    <div class="filter-chips" id="line-filter-chips">
-      <div class="filter-chip active" onclick="setLineFilter('all')">All</div>
-      <div class="filter-chip" onclick="setLineFilter('1')">Line 1</div>
-      <div class="filter-chip" onclick="setLineFilter('2')">Line 2</div>
-      <div class="filter-chip" onclick="setLineFilter('3')">Line 3</div>
-      <div class="filter-chip" onclick="setLineFilter('nil')">Nil</div>
-    </div>
-    <table class="point-history" id="point-history-table">
-      <thead><tr>
-        <th>#</th><th>Gender</th><th>Result</th><th>Players on Field</th>
-      </tr></thead>
-      <tbody id="point-history-body"></tbody>
-    </table>
-  </div>
 </div>
 
-<!-- ===================== LIVE GAME ===================== -->
+<div class="screen" id="screen-setup">
+    <div class="card">
+        <div class="card-title">Opponent Name</div>
+        <input class="input" type="text" id="opp-name-setup" style="width:100%; padding:8px; border-radius:8px; background:var(--surface2); color:white; border:1px solid var(--border);" value="Hurricanes" />
+    </div>
+    <div class="card">
+        <div class="card-title">ABBA Sequence Start</div>
+        <div class="toggle-group">
+            <button class="toggle-btn active" id="abba-m" onclick="setAbba('M')">Male First (4M3F)</button>
+            <button class="toggle-btn" id="abba-f" onclick="setAbba('F')">Female First (3M4F)</button>
+        </div>
+    </div>
+    <button class="btn btn-green btn-full" onclick="showScreen('calling')">Initialize Lines →</button>
+</div>
+
+<div class="screen" id="screen-calling">
+    <div class="card">
+        <div class="card-title">Current Line (Point <span id="call-pt-now">1</span>)</div>
+        <div id="calling-line-0" class="roster-grid"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Next Line (Point <span id="call-pt-next">2</span>)</div>
+        <div id="calling-line-1" class="roster-grid"></div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="showScreen('live')">Go to Live Game</button>
+</div>
+
 <div class="screen" id="screen-live">
-  <div class="scoreboard" style="margin-top:16px">
-    <div style="text-align:center">
-      <div class="score-label">FireDiscs</div>
-      <div class="score-num us" id="sc-us">0</div>
+    <div class="scoreboard">
+        <div style="text-align:center"><div class="score-num us" id="live-us">0</div><div>FireDiscs</div></div>
+        <div style="text-align:center">Point <span id="live-pt">1</span><br><small id="live-req"></small></div>
+        <div style="text-align:center"><div class="score-num them" id="live-them">0</div><div id="live-opp-name">Hurricanes</div></div>
     </div>
-    <div style="text-align:center">
-      <div class="score-label">Point #<span id="pt-num">1</span></div>
-      <div class="gender-pill men" id="gender-pill">4M / 3F</div>
-    </div>
-    <div style="text-align:center">
-      <div class="score-label" id="opp-label">Hurricanes</div>
-      <div class="score-num them" id="sc-them">0</div>
-    </div>
-  </div>
-
-  <div class="sub-tabs" id="live-subtabs">
-    <div class="sub-tab active" onclick="showLiveTab('line')">Line</div>
-    <div class="sub-tab" onclick="showLiveTab('score')">Score</div>
-    <div class="sub-tab" onclick="showLiveTab('log')">Log</div>
-  </div>
-
-  <div id="live-line">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div class="card-title" style="margin-bottom:0">Current Line</div>
-        <div class="text-muted" style="font-size:0.78rem"><span id="cur-line-cnt">0</span>/7 &nbsp; <span id="cur-gender-req" style="color:var(--accent)"></span></div>
-      </div>
-      <div class="filter-chips" id="live-filter-chips">
-        <div class="filter-chip active" onclick="setLiveFilter('all')">All</div>
-        <div class="filter-chip" onclick="setLiveFilter('1')">Line 1</div>
-        <div class="filter-chip" onclick="setLiveFilter('2')">Line 2</div>
-        <div class="filter-chip" onclick="setLiveFilter('3')">Line 3</div>
-        <div class="filter-chip" onclick="setLiveFilter('nil')">Nil</div>
-      </div>
-      <div class="roster-grid" id="live-line-grid"></div>
+    
+    <div class="sub-tabs">
+        <div class="sub-tab active" id="tab-action" onclick="showLiveSub('action')">Action</div>
+        <div class="sub-tab" id="tab-log" onclick="showLiveSub('log')">Log</div>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div class="card-title" style="margin-bottom:0">Next Line</div>
-        <div class="text-muted" style="font-size:0.78rem"><span id="next-line-cnt">0</span>/7 &nbsp; <span id="next-gender-req" style="color:var(--accent)"></span></div>
-      </div>
-      <div class="roster-grid" id="live-next-grid"></div>
-      <hr class="section-sep" />
-      <button class="btn btn-primary btn-full btn-sm" onclick="applyNextLine()">Apply Next Line &#8594;</button>
+    <div id="live-action">
+        <div class="card">
+            <div class="card-title" id="action-prompt">Select Player Action</div>
+            <div class="roster-grid" id="live-players-grid"></div>
+            <div id="action-options" style="display:none;" class="action-grid">
+                <button class="btn btn-ghost" onclick="recordStat('D')">D</button>
+                <button class="btn btn-red" onclick="recordStat('Turnover')">Turn</button>
+                <button class="btn btn-green" onclick="recordStat('Score')">Score</button>
+            </div>
+            <div id="assist-options" style="display:none;">
+                <div class="card-title">Who Assisted?</div>
+                <div class="roster-grid" id="assist-grid"></div>
+            </div>
+        </div>
+        <button class="btn btn-red btn-full" onclick="theyScore()">+1 Them (Opponent Scored)</button>
     </div>
-  </div>
 
-  <div id="live-score" style="display:none">
-    <div class="card">
-      <div class="card-title">Record Point Result</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <button class="btn btn-green btn-full" onclick="weScore()">+1 Us &#127944;</button>
-        <button class="btn btn-red btn-full" onclick="theyScore()">+1 Them</button>
-      </div>
+    <div id="live-log" style="display:none;">
+        <div class="card"><ul class="game-log-list" id="game-log-ui"></ul></div>
     </div>
-  </div>
-
-  <div id="live-log" style="display:none">
-    <div class="card">
-      <div class="card-title">Game Log</div>
-      <ul class="game-log-list" id="game-log-list"></ul>
-    </div>
-  </div>
-
-  <button class="btn btn-red btn-full" onclick="endGame()" style="margin-top:14px;margin-bottom:24px">End Game</button>
 </div>
 
-<!-- ===================== SUMMARY ===================== -->
 <div class="screen" id="screen-summary">
-  <div class="top-bar">
-    <div>
-      <div class="page-title">Game Summary</div>
-      <div class="text-muted">FireDiscs vs <span id="sum-opp">Hurricanes</span></div>
+    <div class="card">
+        <div class="card-title">Final Stats</div>
+        <div id="summary-content"></div>
     </div>
-    <span class="badge badge-green" id="win-badge">W</span>
-  </div>
-
-  <div class="scoreboard">
-    <div style="text-align:center">
-      <div class="score-label">FireDiscs</div>
-      <div class="score-num us" id="sum-sc-us">0</div>
-    </div>
-    <div style="font-size:1.5rem;color:var(--muted)">:</div>
-    <div style="text-align:center">
-      <div class="score-label" id="sum-opp2">Hurricanes</div>
-      <div class="score-num them" id="sum-sc-them">0</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Points Played per Player</div>
-    <table class="stats-table">
-      <thead><tr><th>Player</th><th>Line</th><th>Pts Played</th></tr></thead>
-      <tbody id="sum-tbody"></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Gender Sequence Used</div>
-    <div class="gender-seq" id="sum-gender-seq"></div>
-  </div>
-
-  <button class="btn btn-ghost btn-full" onclick="showScreen('roster')" style="margin-bottom:24px">&#8592; Back to Roster</button>
+    <button class="btn btn-ghost btn-full" onclick="location.reload()">New Game</button>
 </div>
 
 <script>
 let roster = [
-  {id:1,  name:'Alex',   num:7,  gender:'M', line:1},
-  {id:2,  name:'Jordan', num:11, gender:'F', line:1},
-  {id:3,  name:'Sam',    num:4,  gender:'M', line:1},
-  {id:4,  name:'Casey',  num:9,  gender:'F', line:1},
-  {id:5,  name:'Morgan', num:22, gender:'M', line:2},
-  {id:6,  name:'Taylor', num:15, gender:'F', line:2},
-  {id:7,  name:'Riley',  num:3,  gender:'M', line:2},
-  {id:8,  name:'Quinn',  num:8,  gender:'F', line:2},
-  {id:9,  name:'Drew',   num:17, gender:'M', line:3},
-  {id:10, name:'Blake',  num:6,  gender:'F', line:3},
-  {id:11, name:'Avery',  num:21, gender:'M', line:3},
-  {id:12, name:'Parker', num:14, gender:'F', line:3},
-  {id:13, name:'Reese',  num:5,  gender:'M', line:null},
-  {id:14, name:'Skyler', num:19, gender:'F', line:null},
+    {id:1, name:'Alex', num:7, gender:'M'}, {id:2, name:'Jordan', num:11, gender:'F'},
+    {id:3, name:'Sam', num:4, gender:'M'}, {id:4, name:'Casey', num:9, gender:'F'},
+    {id:5, name:'Morgan', num:22, gender:'M'}, {id:6, name:'Taylor', num:15, gender:'F'},
+    {id:7, name:'Riley', num:3, gender:'M'}, {id:8, name:'Quinn', num:8, gender:'F'},
+    {id:9, name:'Drew', num:17, gender:'M'}, {id:10, name:'Blake', num:6, gender:'F'}
 ];
-let nextId = 15;
-let ngGender = 'M';
-let squad = [];
-let curLine = [];
-let nextLine = [];
-let pointRecords = [];
-let ptsPlayed = {};
-let scoreUs = 0, scoreThem = 0;
-let curPoint = 1;
-let cfg = { opp: 'Hurricanes', startO: true, ratio: '3M4F', seq: 'ABBA', abbaF: false };
-let genderSeq = [];
-let lineFilter = 'all';
-let liveFilter = 'all';
-let chartVisible = false;
 
-function gp(id) { return roster.find(p => p.id === id); }
-function sortRosterDisplay(ids) {
-  const males = ids.filter(id => { const p=gp(id); return p && p.gender==='M'; }).sort((a,b)=>gp(a).num-gp(b).num);
-  const females = ids.filter(id => { const p=gp(id); return p && p.gender==='F'; }).sort((a,b)=>gp(a).num-gp(b).num);
-  return [...males, ...females];
+let squad = [];
+let scoreUs = 0, scoreThem = 0, curPoint = 1;
+let abbaStart = 'M';
+let plannedLines = [[], [], []]; // Current, Next, Next+1
+let activePlayerId = null;
+let gameLog = [];
+
+function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    if(name === 'live') renderLive();
+    if(name === 'calling') renderCalling();
+    if(name === 'summary') renderSummary();
 }
-function parseReq(req) { const m = req.match(/(\d+)M(\d+)F/); return m ? {M:+m[1], F:+m[2]} : {M:3, F:4}; }
-function lineGenderCount(ids) { const c={M:0,F:0}; ids.forEach(id=>{const p=gp(id);if(p)c[p.gender]++;}); return c; }
-function getSuggested(lineIds, req) {
-  const needed=parseReq(req); const have=lineGenderCount(lineIds);
-  const need={M:Math.max(0,needed.M-have.M),F:Math.max(0,needed.F-have.F)};
-  if(need.M+need.F===0) return [];
-  const candidates=squad.filter(id=>!lineIds.includes(id)); const result=[];
-  ['M','F'].forEach(g=>{ if(need[g]<=0) return; const pool=candidates.filter(id=>{const p=gp(id);return p&&p.gender===g;}).sort((a,b)=>(ptsPlayed[a]||0)-(ptsPlayed[b]||0)); pool.slice(0,need[g]).forEach(id=>result.push(id)); });
-  return result;
+
+// ROSTER LOGIC
+function renderRoster() {
+    const grid = document.getElementById('roster-selection-grid');
+    grid.innerHTML = '';
+    roster.forEach(p => {
+        const inSq = squad.includes(p.id);
+        const chip = document.createElement('div');
+        chip.className = `player-chip ${p.gender === 'M' ? 'male' : 'female'} ${inSq ? 'selected' : ''}`;
+        chip.innerHTML = `<div class="jersey">#${p.num}</div><div class="name">${p.name}</div>`;
+        chip.onclick = () => {
+            if(inSq) squad = squad.filter(id => id !== p.id);
+            else squad.push(p.id);
+            renderRoster();
+            renderSquad();
+        };
+        grid.appendChild(chip);
+    });
 }
-function genGenderSeq() {
-  genderSeq=[];
-  for(let i=0;i<30;i++) {
-    if(cfg.seq==='ABBA'){const A=cfg.abbaF?'3M4F':'4M3F';const B=cfg.abbaF?'4M3F':'3M4F';genderSeq.push([A,B,B,A][i%4]);}
-    else if(cfg.seq==='ALT'){genderSeq.push(i%2===0?'4M3F':'3M4F');}
-    else{genderSeq.push(cfg.ratio);}
-  }
+
+function addAllToSquad() {
+    squad = roster.map(p => p.id);
+    renderRoster();
+    renderSquad();
 }
-function getReqForPoint(n){return genderSeq[n-1]||cfg.ratio;}
-function reqLabel(req){return req.replace('M',' M ').replace('F','F').trim();}
-function makeChip(id,inLine,suggested,pCount,showLine){
-  const p=gp(id); if(!p) return null;
-  const el=document.createElement('div');
-  const gc=p.gender==='M'?'male':'female';
-  el.className=`player-chip ${gc} ${inLine?'selected':''} ${suggested?'suggested':''}`;
-  el.innerHTML=`<div class="jersey">#${p.num}</div><div class="name">${p.name}</div>${pCount>0?`<div class="pts-badge">${pCount}</div>`:''}${showLine?`<div class="line-tag">${p.line?'L'+p.line:'nil'}</div>`:''}`;
-  return el;
+
+function renderSquad() {
+    const grid = document.getElementById('game-squad-grid');
+    grid.innerHTML = '';
+    squad.forEach(id => {
+        const p = roster.find(x => x.id === id);
+        const chip = document.createElement('div');
+        chip.className = `player-chip ${p.gender === 'M' ? 'male' : 'female'}`;
+        chip.innerHTML = `<div class="jersey">#${p.num}</div><div class="name">${p.name}</div>`;
+        grid.appendChild(chip);
+    });
 }
-function renderRoster(){
-  const g=document.getElementById('roster-grid'); g.innerHTML='';
-  sortRosterDisplay(roster.map(p=>p.id)).forEach(id=>{
-    const p=gp(id); const chip=makeChip(id,false,false,0,true); if(!chip) return;
-    chip.onclick=()=>{if(confirm('Remove '+p.name+'?')){roster=roster.filter(r=>r.id!==id);squad=squad.filter(x=>x!==id);renderRoster();}};
-    g.appendChild(chip);
-  });
-  document.getElementById('roster-info').textContent=roster.length+' players';
+
+// SETUP & CALLING
+function setAbba(g) {
+    abbaStart = g;
+    document.getElementById('abba-m').classList.toggle('active', g === 'M');
+    document.getElementById('abba-f').classList.toggle('active', g === 'F');
 }
-function setNg(g){ngGender=g;['M','F'].forEach(x=>document.getElementById('ng-'+x.toLowerCase()).classList.toggle('active',x===g));}
-function addPlayer(){
-  const name=document.getElementById('new-name').value.trim();
-  const num=parseInt(document.getElementById('new-num').value);
-  if(!name||!num) return alert('Enter name and number');
-  roster.push({id:nextId++,name,num,gender:ngGender,line:null});
-  document.getElementById('new-name').value='';
-  document.getElementById('new-num').value='';
-  renderRoster();
+
+function renderCalling() {
+    document.getElementById('call-pt-now').textContent = curPoint;
+    document.getElementById('call-pt-next').textContent = curPoint + 1;
+    [0, 1].forEach(offset => {
+        const grid = document.getElementById('calling-line-' + offset);
+        grid.innerHTML = '';
+        squad.forEach(id => {
+            const p = roster.find(x => x.id === id);
+            const inLine = plannedLines[offset].includes(id);
+            const chip = document.createElement('div');
+            chip.className = `player-chip ${p.gender === 'M' ? 'male' : 'female'} ${inLine ? 'selected' : ''}`;
+            chip.innerHTML = `<div class="jersey">#${p.num}</div><div class="name">${p.name}</div>`;
+            chip.onclick = () => {
+                if(inLine) plannedLines[offset] = plannedLines[offset].filter(x => x !== id);
+                else if(plannedLines[offset].length < 7) plannedLines[offset].push(id);
+                renderCalling();
+            };
+            grid.appendChild(chip);
+        });
+    });
 }
-function showSetupTab(tab){
-  ['squad','format'].forEach(t=>{document.getElementById('setup-'+t).style.display=t===tab?'block':'none';});
-  document.querySelectorAll('#setup-subtabs .sub-tab').forEach((el,i)=>{el.classList.toggle('active',['squad','format'][i]===tab);});
-  if(tab==='squad') renderSquadGrid();
-  if(tab==='format'){genGenderSeq();renderSeqPreview();}
+
+// LIVE ACTION
+function showLiveSub(tab) {
+    document.getElementById('live-action').style.display = tab === 'action' ? 'block' : 'none';
+    document.getElementById('live-log').style.display = tab === 'log' ? 'block' : 'none';
+    document.getElementById('tab-action').classList.toggle('active', tab === 'action');
+    document.getElementById('tab-log').classList.toggle('active', tab === 'log');
 }
-function renderSquadGrid(){
-  const g=document.getElementById('squad-grid'); g.innerHTML='';
-  sortRosterDisplay(roster.map(p=>p.id)).forEach(id=>{
-    const inSq=squad.includes(id); const chip=makeChip(id,inSq,false,0,true); if(!chip) return;
-    chip.onclick=()=>{if(inSq)squad=squad.filter(x=>x!==id);else squad.push(id);renderSquadGrid();document.getElementById('squad-cnt').textContent=squad.length;};
-    g.appendChild(chip);
-  });
-  document.getElementById('squad-cnt').textContent=squad.length;
+
+function renderLive() {
+    document.getElementById('live-us').textContent = scoreUs;
+    document.getElementById('live-them').textContent = scoreThem;
+    document.getElementById('live-pt').textContent = curPoint;
+    document.getElementById('live-opp-name').textContent = document.getElementById('opp-name-setup').value;
+    
+    const grid = document.getElementById('live-players-grid');
+    grid.innerHTML = '';
+    plannedLines[0].forEach(id => {
+        const p = roster.find(x => x.id === id);
+        const chip = document.createElement('div');
+        chip.className = `player-chip ${p.gender === 'M' ? 'male' : 'female'} ${activePlayerId === id ? 'selected' : ''}`;
+        chip.innerHTML = `<div class="jersey">#${p.num}</div><div class="name">${p.name}</div>`;
+        chip.onclick = () => {
+            activePlayerId = id;
+            document.getElementById('action-options').style.display = 'grid';
+            document.getElementById('assist-options').style.display = 'none';
+            renderLive();
+        };
+        grid.appendChild(chip);
+    });
 }
-function setPoss(p){cfg.startO=p==='O';['O','D'].forEach(x=>document.getElementById('tog-'+x).classList.toggle('active',x===p));}
-function setRatio(r){cfg.ratio=r;['4M3F','3M4F','MIXED'].forEach(x=>document.getElementById('tog-'+x).classList.toggle('active',x===r));genGenderSeq();renderSeqPreview();}
-function setSeq(s){cfg.seq=s;['ABBA','ALT','MANUAL'].forEach(x=>document.getElementById('tog-'+x).classList.toggle('active',x===s));document.getElementById('abba-opts').style.display=s==='ABBA'?'block':'none';genGenderSeq();renderSeqPreview();}
-function setAbbaF(){cfg.abbaF=document.getElementById('abba-f').checked;genGenderSeq();renderSeqPreview();}
-function renderSeqPreview(){
-  const el=document.getElementById('seq-preview'); el.innerHTML='';
-  for(let i=0;i<8;i++){const req=genderSeq[i]||cfg.ratio;const g=req.startsWith('4M')?'M':'F';const d=document.createElement('div');d.className='gender-dot '+g;d.textContent=g;d.title='Point '+(i+1)+': '+req;el.appendChild(d);}
-}
-function startGame(){
-  if(squad.length<7) return alert('Select at least 7 squad members');
-  cfg.opp=document.getElementById('opp-name').value||'Opponent';
-  genGenderSeq(); ptsPlayed={}; squad.forEach(id=>ptsPlayed[id]=0);
-  curLine=[];nextLine=[];scoreUs=0;scoreThem=0;curPoint=1;
-  pointRecords=[];
-  for(let i=1;i<=20;i++){pointRecords.push({pt:i,gender:getReqForPoint(i),result:'empty',players:[]});}
-  showScreen('live');
-}
-function showLinesScreen(){renderLineAssign();renderPointHistory();if(chartVisible)renderChart();}
-function toggleChart(){chartVisible=!chartVisible;document.getElementById('chart-view').style.display=chartVisible?'block':'none';if(chartVisible)renderChart();}
-function setLineFilter(f){
-  lineFilter=f;
-  document.querySelectorAll('#line-filter-chips .filter-chip').forEach((el,i)=>{el.classList.toggle('active',['all','1','2','3','nil'][i]===f);});
-  renderPointHistory();
-}
-function renderLineAssign(){
-  const el=document.getElementById('line-assign-list'); el.innerHTML='';
-  sortRosterDisplay(roster.map(p=>p.id)).forEach(id=>{
-    const p=gp(id); if(!p) return;
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(71,85,105,0.3)';
-    const nameColor=p.gender==='M'?'#93c5fd':'#f9a8d4';
-    row.innerHTML=`<div style="font-size:0.85rem;font-weight:600;color:${nameColor}">#${p.num} ${p.name}</div><div style="display:flex;gap:4px">${[1,2,3,null].map(l=>{const label=l===null?'nil':'L'+l;const active=p.line===l;return `<button onclick="setPlayerLine(${id},${l})" style="padding:4px 8px;border-radius:6px;border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'rgba(56,189,248,0.15)':'var(--surface2)'};color:${active?'var(--accent)':'var(--muted)'};font-size:0.75rem;font-weight:600;cursor:pointer">${label}</button>`;}).join('')}</div>`;
-    el.appendChild(row);
-  });
-}
-function setPlayerLine(id,line){const p=gp(id);if(p)p.line=line;renderLineAssign();renderPointHistory();if(chartVisible)renderChart();}
-function renderPointHistory(){
-  const body=document.getElementById('point-history-body'); if(!body) return; body.innerHTML='';
-  const maxPt=Math.max(curPoint+4,pointRecords.length);
-  for(let i=0;i<Math.min(maxPt,pointRecords.length);i++){
-    const rec=pointRecords[i];
-    let players=rec.players;
-    if(lineFilter!=='all'){const filterLine=lineFilter==='nil'?null:parseInt(lineFilter);players=players.filter(id=>{const p=gp(id);return p&&p.line===filterLine;});}
-    const tr=document.createElement('tr');
-    if(rec.result==='win')tr.className='past-win';
-    else if(rec.result==='loss')tr.className='past-loss';
-    else if(rec.pt>curPoint)tr.className='future';
-    const resultText=rec.result==='win'?'&#9679; W':rec.result==='loss'?'&#9679; L':rec.pt===curPoint?'&#9654; Now':'-';
-    const req=rec.gender; const isWomen=req.startsWith('3M');
-    const playerChips=players.map(id=>{const p=gp(id);if(!p)return '';const gc=p.gender==='M'?'m':'f';return `<span class="mini-chip ${gc}">#${p.num} ${p.name}</span>`;}).join('');
-    tr.innerHTML=`<td style="font-weight:700;min-width:34px">${rec.pt}</td><td><div style="display:inline-block;padding:2px 6px;border-radius:10px;font-size:0.68rem;font-weight:700;background:${isWomen?'rgba(236,72,153,0.15)':'rgba(59,130,246,0.15)'};color:${isWomen?'#f9a8d4':'#93c5fd'}">${req}</div></td><td style="min-width:30px">${resultText}</td><td style="max-width:180px">${playerChips||'<span style="color:var(--muted);font-size:0.72rem">--</span>'}</td>`;
-    if(rec.pt>=curPoint){tr.style.cursor='pointer';tr.onclick=()=>openPointPlanner(i);}
-    body.appendChild(tr);
-  }
-}
-function openPointPlanner(idx){const rec=pointRecords[idx];alert('Point '+rec.pt+' - Gender required: '+rec.gender);}
-function renderChart(){
-  const table=document.getElementById('participation-chart'); if(!table) return; table.innerHTML='';
-  const totalPoints=Math.min(curPoint+3,pointRecords.length);
-  const thead=document.createElement('thead'); const headerRow=document.createElement('tr');
-  headerRow.innerHTML='<th>Player</th>';
-  for(let i=0;i<totalPoints;i++)headerRow.innerHTML+=`<th>P${i+1}</th>`;
-  thead.appendChild(headerRow); table.appendChild(thead);
-  const tbody=document.createElement('tbody');
-  sortRosterDisplay(roster.map(p=>p.id)).forEach(id=>{
-    const p=gp(id); if(!p) return;
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="player-name ${p.gender==='M'?'male':'female'}">#${p.num} ${p.name}</td>`;
-    for(let i=0;i<totalPoints;i++){
-      const rec=pointRecords[i]; const played=rec.players.includes(id);
-      const td=document.createElement('td'); td.style.textAlign='center';
-      if(played){if(rec.result==='win'){td.className='cell-win';td.textContent='W';}else if(rec.result==='loss'){td.className='cell-loss';td.textContent='L';}else if(rec.result==='planned'){td.className='cell-future';td.textContent='?';}else{td.className='cell-played';td.textContent='+';}}
-      else{td.className='cell-empty';td.textContent='';}
-      tr.appendChild(td);
+
+function recordStat(type) {
+    const p = roster.find(x => x.id === activePlayerId);
+    if(type === 'Score') {
+        document.getElementById('action-options').style.display = 'none';
+        document.getElementById('assist-options').style.display = 'block';
+        const agrid = document.getElementById('assist-grid');
+        agrid.innerHTML = '';
+        plannedLines[0].filter(id => id !== activePlayerId).forEach(id => {
+            const assistant = roster.find(x => x.id === id);
+            const chip = document.createElement('div');
+            chip.className = `player-chip ${assistant.gender === 'M' ? 'male' : 'female'}`;
+            chip.innerHTML = `<div class="name">${assistant.name}</div>`;
+            chip.onclick = () => finalizePoint(p.name, assistant.name);
+            agrid.appendChild(chip);
+        });
+    } else {
+        gameLog.push(`Point ${curPoint}: ${p.name} recorded a ${type}`);
+        updateLog();
+        activePlayerId = null;
+        document.getElementById('action-options').style.display = 'none';
+        renderLive();
     }
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
 }
-function setLiveFilter(f){
-  liveFilter=f;
-  document.querySelectorAll('#live-filter-chips .filter-chip').forEach((el,i)=>{el.classList.toggle('active',['all','1','2','3','nil'][i]===f);});
-  renderCurrentLineGrid();
+
+function finalizePoint(scorer, assistant) {
+    scoreUs++;
+    gameLog.push(`Point ${curPoint}: Goal by ${scorer}, Assist by ${assistant}`);
+    nextPoint();
 }
-function showLiveTab(tab){
-  ['line','score','log'].forEach(t=>{document.getElementById('live-'+t).style.display=t===tab?'block':'none';});
-  document.querySelectorAll('#live-subtabs .sub-tab').forEach((el,i)=>{el.classList.toggle('active',['line','score','log'][i]===tab);});
-  if(tab==='line'){renderCurrentLineGrid();renderNextLineGrid();}
-  if(tab==='log') renderGameLog();
+
+function theyScore() {
+    scoreThem++;
+    gameLog.push(`Point ${curPoint}: Opponent Scored`);
+    nextPoint();
 }
-function renderLiveHeader(){
-  document.getElementById('sc-us').textContent=scoreUs;
-  document.getElementById('sc-them').textContent=scoreThem;
-  document.getElementById('pt-num').textContent=curPoint;
-  document.getElementById('opp-label').textContent=cfg.opp;
-  const req=getReqForPoint(curPoint);
-  const pill=document.getElementById('gender-pill');
-  pill.textContent=reqLabel(req);
-  pill.className='gender-pill '+(req.startsWith('4M')?'men':'women');
+
+function nextPoint() {
+    curPoint++;
+    plannedLines.shift(); // Push lines up
+    plannedLines.push([]); // Add empty placeholder for future
+    activePlayerId = null;
+    document.getElementById('action-options').style.display = 'none';
+    document.getElementById('assist-options').style.display = 'none';
+    updateLog();
+    if(plannedLines[0].length === 0) showScreen('calling');
+    else renderLive();
 }
-function renderCurrentLineGrid(){
-  const grid=document.getElementById('live-line-grid'); if(!grid) return; grid.innerHTML='';
-  const req=getReqForPoint(curPoint); const suggested=getSuggested(curLine,req);
-  let displayIds=[...squad];
-  if(liveFilter!=='all'){const fl=liveFilter==='nil'?null:parseInt(liveFilter);displayIds=displayIds.filter(id=>{const p=gp(id);return p&&p.line===fl;});}
-  sortRosterDisplay(displayIds).forEach(id=>{
-    const inLine=curLine.includes(id); const sug=suggested.includes(id)&&!inLine;
-    const chip=makeChip(id,inLine,sug,ptsPlayed[id]||0,true); if(!chip) return;
-    chip.onclick=()=>{if(inLine)curLine=curLine.filter(x=>x!==id);else if(curLine.length<7)curLine.push(id);renderCurrentLineGrid();document.getElementById('cur-line-cnt').textContent=curLine.length;};
-    grid.appendChild(chip);
-  });
-  document.getElementById('cur-line-cnt').textContent=curLine.length;
-  document.getElementById('cur-gender-req').textContent=req;
+
+function updateLog() {
+    const ui = document.getElementById('game-log-ui');
+    ui.innerHTML = gameLog.slice().reverse().map(l => `<li>${l}</li>`).join('');
 }
-function renderNextLineGrid(){
-  const grid=document.getElementById('live-next-grid'); if(!grid) return; grid.innerHTML='';
-  const req=getReqForPoint(curPoint+1); const suggested=getSuggested(nextLine,req);
-  sortRosterDisplay([...squad]).forEach(id=>{
-    const inLine=nextLine.includes(id); const sug=suggested.includes(id)&&!inLine;
-    const chip=makeChip(id,inLine,sug,ptsPlayed[id]||0,true); if(!chip) return;
-    chip.onclick=()=>{if(inLine)nextLine=nextLine.filter(x=>x!==id);else if(nextLine.length<7)nextLine.push(id);renderNextLineGrid();document.getElementById('next-line-cnt').textContent=nextLine.length;};
-    grid.appendChild(chip);
-  });
-  document.getElementById('next-line-cnt').textContent=nextLine.length;
-  document.getElementById('next-gender-req').textContent=req;
+
+function renderSummary() {
+    document.getElementById('summary-content').innerHTML = `
+        <h3>Final Score: ${scoreUs} - ${scoreThem}</h3>
+        <p>Total Points Played: ${curPoint - 1}</p>
+        <hr style="margin:10px 0; opacity:0.2;">
+        <h4>Log:</h4>
+        <ul style="font-size:0.8rem; margin-top:10px;">${gameLog.map(l => `<li>${l}</li>`).join('')}</ul>
+    `;
 }
-function applyNextLine(){if(nextLine.length===0)return alert('Next line is empty');curLine=[...nextLine];nextLine=[];renderCurrentLineGrid();renderNextLineGrid();}
-function weScore(){recordPoint('win');}
-function theyScore(){recordPoint('loss');}
-function recordPoint(result){
-  curLine.forEach(id=>{ptsPlayed[id]=(ptsPlayed[id]||0)+1;});
-  const idx=pointRecords.findIndex(r=>r.pt===curPoint);
-  if(idx>=0){pointRecords[idx].result=result;pointRecords[idx].players=[...curLine];}
-  if(result==='win')scoreUs++;else scoreThem++;
-  curLine=[...nextLine];nextLine=[];curPoint++;
-  renderLiveHeader();showLiveTab('line');
-}
-function renderGameLog(){
-  const ul=document.getElementById('game-log-list'); if(!ul) return;
-  const played=pointRecords.filter(r=>r.result==='win'||r.result==='loss').reverse();
-  if(played.length===0){ul.innerHTML='<li class="text-muted">No points recorded yet</li>';return;}
-  ul.innerHTML=played.map(r=>{
-    const icon=r.result==='win'?'&#127944;':'&#10060;'; const cls=r.result==='win'?'goal':'loss';
-    const names=r.players.map(id=>{const p=gp(id);return p?p.name:''}).filter(Boolean).join(', ');
-    return `<li><div class="ev-icon ${cls}">${icon}</div><div><strong>Point ${r.pt}:</strong> ${r.result==='win'?'We scored':'They scored'}<br><span class="text-muted">${names||'No line recorded'}</span></div></li>`;
-  }).join('');
-}
-function endGame(){if(!confirm('End game and view summary?'))return;showScreen('summary');}
-function renderSummary(){
-  document.getElementById('sum-opp').textContent=cfg.opp;
-  document.getElementById('sum-opp2').textContent=cfg.opp;
-  document.getElementById('sum-sc-us').textContent=scoreUs;
-  document.getElementById('sum-sc-them').textContent=scoreThem;
-  const wb=document.getElementById('win-badge');
-  if(scoreUs>scoreThem){wb.textContent='W';wb.className='badge badge-green';}else{wb.textContent='L';wb.className='badge badge-red';}
-  const tbody=document.getElementById('sum-tbody');
-  tbody.innerHTML=sortRosterDisplay(squad).map(id=>{
-    const p=gp(id); if(!p) return '';
-    const color=p.gender==='M'?'#93c5fd':'#f9a8d4';
-    return `<tr><td style="color:${color};font-weight:600">${p.name} #${p.num}</td><td style="color:var(--muted)">${p.line?'Line '+p.line:'nil'}</td><td class="highlight">${ptsPlayed[id]||0}</td></tr>`;
-  }).join('');
-  const seq=document.getElementById('sum-gender-seq'); seq.innerHTML='';
-  pointRecords.filter(r=>r.result==='win'||r.result==='loss').forEach(r=>{
-    const g=r.gender.startsWith('4M')?'M':'F';
-    const d=document.createElement('div'); d.className='gender-dot '+g; d.textContent=g; d.title='Point '+r.pt+': '+r.gender+' ('+r.result+')';
-    seq.appendChild(d);
-  });
-}
-function showScreen(name){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.demo-tabs .demo-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
-  const idx=['roster','setup','lines','live','summary'].indexOf(name);
-  if(idx>=0)document.querySelectorAll('.demo-tabs .demo-tab')[idx].classList.add('active');
-  if(name==='roster')renderRoster();
-  else if(name==='setup')showSetupTab('squad');
-  else if(name==='lines')showLinesScreen();
-  else if(name==='live'){renderLiveHeader();showLiveTab('line');}
-  else if(name==='summary')renderSummary();
-}
-genGenderSeq();
+
+// Init
 renderRoster();
 </script>
 </body>
